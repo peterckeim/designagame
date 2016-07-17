@@ -1,31 +1,33 @@
-<<<<<<< HEAD
 #Full Stack Nanodegree Project 4 Refresh
 
 ## Set-Up Instructions:
-1.  Update the value of application in app.yaml to the app ID you have registered
- in the App Engine admin console and would like to use to host your instance of this sample.
-1.  Run the app with the devserver using dev_appserver.py DIR, and ensure it's
+1.  Update the value of application in app.yaml to a Google app ID you have registered
+ in the Google AppEngine admin console which you would like to use to host your instance of this game.
+2.  Run the app with the devserver using dev_appserver.py DIR, and ensure it's
  running by visiting the API Explorer - by default localhost:8080/_ah/api/explorer.
-1.  (Optional) Generate your client library(ies) with the endpoints tool.
+3.  (Optional) Generate your client library(ies) with the endpoints tool.
  Deploy your application.
  
 ##Game Description:
-Guess a number is a simple guessing game. Each game begins with a random 'target'
-number between the minimum and maximum values provided, and a maximum number of
-'attempts'. 'Guesses' are sent to the `make_move` endpoint which will reply
-with either: 'too low', 'too high', 'you win', or 'game over' (if the maximum
-number of attempts is reached).
-Many different Guess a Number games can be played by many different Users at any
-given time. Each game can be retrieved or played by using the path parameter
+Hangman is a single player guessing game. The user is given a target word to eventually guess. The player is given a
+hidden string which shows the number of characters in the target word. On a round, the player is only allowed to guess 
+one English letter. If the letter is in the target word, it will show all instances of that letter in the hidden string, which
+can help guide the player in guessing the rest of the word in later rounds. If a player guesses a letter which is not in the target word
+they will receive a strike. There are 6 strikes in a traditional game (drawing the head, body, right arm, left arm, right leg, left leg onto
+a rope hanging from gallows). The game is over when the player uncovers the target word, or runs out of strikes. 
+
+'Guesses' are sent to the `make_move` endpoint which will reply whether the letter is in the target word or not.
+Many different Hangman games can be played by many different Users at any given time. Each game can be retrieved or played by using the path parameter
 `urlsafe_game_key`.
 
 ##Files Included:
  - api.py: Contains endpoints and game playing logic.
  - app.yaml: App configuration.
- - cron.yaml: Cronjob configuration.
- - main.py: Handler for taskqueue handler.
+ - cron.yaml: Cronjob configuration (configuring when to perform specific tasks and in what intervals).
+ - main.py: Handler for taskqueue handler (in this project, configuring a mass e-mail sent to all players with unfinished games)
  - models.py: Entity and message definitions including helper methods.
  - utils.py: Helper function for retrieving ndb.Models by urlsafe Key string.
+ - wordlist.txt: List of words used for the game.
 
 ##Endpoints Included:
  - **create_user**
@@ -39,12 +41,11 @@ given time. Each game can be retrieved or played by using the path parameter
  - **new_game**
     - Path: 'game'
     - Method: POST
-    - Parameters: user_name, min, max, attempts
+    - Parameters: user_name
     - Returns: GameForm with initial game state.
     - Description: Creates a new Game. user_name provided must correspond to an
-    existing user - will raise a NotFoundException if not. Min must be less than
-    max. Also adds a task to a task queue to update the average moves remaining
-    for active games.
+    existing user - will raise a NotFoundException if not. Also adds a task to a 
+	task queue to update the average moves remaining for active games.
      
  - **get_game**
     - Path: 'game/{urlsafe_game_key}'
@@ -76,13 +77,54 @@ given time. Each game can be retrieved or played by using the path parameter
     - Description: Returns all Scores recorded by the provided player (unordered).
     Will raise a NotFoundException if the User does not exist.
     
- - **get_active_game_count**
-    - Path: 'games/active'
+ - **get_average_strikes**
+    - Path: 'games/average_strikes'
     - Method: GET
-    - Parameters: None
-    - Returns: StringMessage
-    - Description: Gets the average number of attempts remaining for all games
-    from a previously cached memcache key.
+	- Parameters: (none)
+	- Returns: StringMessage
+    - Description: Get the cached average moves remaining.
+
+ - **get_user_games**
+    - Path: 'games/user/{user_name}',
+    - Method: GET
+    - Parameters: user_name, email (optional)
+    - Returns: GameForms for user_name
+    - Description: Returns all of an individual User's games.
+    Will raise NotFoundException if the User does not exist
+
+ - **cancel_game**
+    - Path: 'game/cancel/{urlsafe_game_key}'
+    - Method: PUT
+    - Parameters: urlsafe_game_key
+    - Returns: GameForm with update canceling the game
+    - Description: ends the game prematurely - no points given. Game = Over.
+    it's my belief that if you need to cancel your game, you need to take a loss.
+    otherwise players will simply delete / cancel games when performing poorly, so it does not affect
+    their ranking. That's letting the ragequitters win, and ragequitters never deserve to win.
+
+ - **get_high_scores**
+    - Path: 'get_scores/high'
+    - Method: GET
+    - Parameters: Max number of results (optional)
+    - Returns: ScoreForms (all games, sorted by highest score, limited by max number of results)
+    - Description: Generates a list of game high scores in descending order; a leader-board.
+    accepts optional parameter 'num_results' which limits the number of returned
+    results. Doesn't work well with Hangman since a perfect game is not uncommon.
+
+ - **get_user_rankings**
+    - Path: 'userranks'
+    - Method: GET
+    - Parameters: Max number of results (optional)
+    - Returns: UserForms (all users, sorted by performance, limited by max number of results)
+    - Description: generates ranked list (leaderboard) of users based on user performance, then by career points,
+    then by fewest games played
+
+ - **get_game_history**
+    - Path: 'history/{urlsafe_game_key}'
+    - Method: GET
+    - Parameters: urlsafe_game_key
+    - Returns: GameHistoryForm
+    - Description: returns the move history of a given game as JSON, as well as whether the game is over, and the user playing.
 
 ##Models Included:
  - **User**
@@ -92,25 +134,29 @@ given time. Each game can be retrieved or played by using the path parameter
     - Stores unique game states. Associated with User model via KeyProperty.
     
  - **Score**
-    - Records completed games. Associated with Users model via KeyProperty.
+    - Records completed games. Associated with User model via KeyProperty.
     
 ##Forms Included:
  - **GameForm**
-    - Representation of a Game's state (urlsafe_key, attempts_remaining,
-    game_over flag, message, user_name).
+    - Representation of a Game's state (urlsafe_key, strikes_remaining,
+    shown_string, guessed_letters, game_over flag, message, user_name).
+ - **GameForms**
+   - Multiple GameForm container.
  - **NewGameForm**
-    - Used to create a new game (user_name, min, max, attempts)
+    - Used to create a new game (user_name)
  - **MakeMoveForm**
     - Inbound make move form (guess).
  - **ScoreForm**
     - Representation of a completed game's Score (user_name, date, won flag,
-    guesses).
+    points).
  - **ScoreForms**
     - Multiple ScoreForm container.
  - **StringMessage**
     - General purpose String container.
-||||||| merged common ancestors
-=======
-# designagame
-Design A Game - Project 4 of Udacity's Full Stack Nanodegree Program
->>>>>>> b8ee8e6e239c6b846e50f50136d60a762b705707
+ - **UserForm**
+    - Representation of a User's information and performance (games_played,
+	career_points, performance)
+ - **UserForms**
+    - Multiple UserForm container.
+ - **GameHistoryForm**
+    - Container holding the historical guesses and responses made for a game as JSON

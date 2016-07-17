@@ -239,7 +239,7 @@ class HangmanApi(remote.Service):
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=GameHistoryForm,
-                      path='history',
+                      path='history/{urlsafe_game_key}',
                       name='get_game_history',
                       http_method='GET')
     def get_game_history(self, request):
