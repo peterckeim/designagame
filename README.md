@@ -16,9 +16,18 @@ can help guide the player in guessing the rest of the word in later rounds. If a
 they will receive a strike. There are 6 strikes in a traditional game (drawing the head, body, right arm, left arm, right leg, left leg onto
 a rope hanging from gallows). The game is over when the player uncovers the target word, or runs out of strikes. 
 
+The 'Score' of a game is simply the remaining number of strikes. A player's performance is equal to their 'career points' (total points over every game played) divided by their total number of games played.
+
 'Guesses' are sent to the `make_move` endpoint which will reply whether the letter is in the target word or not.
 Many different Hangman games can be played by many different Users at any given time. Each game can be retrieved or played by using the path parameter
 `urlsafe_game_key`.
+
+##Quick Playguide:
+Create a new user with the `create_user` endpoint. Give a name and e-mail (optional). Use the name you gave this user in the `new_game` endpoint. The `new_game` endpoint will give you a urlsafe game key, and a hidden string representing the target word. Copy the game key, as you will use it to make guesses. 
+
+Use game key in the `make_move` endpoint to guess a single english letter. If your letter is found in the target string, you will receive no strikes, and the letter will be visible on the hidden string. If you guess a letter not in the target string, you will receive a strike. Once the game is over, the game_over property will be true, and the user's performance will be updated.
+
+The game can be canceled prematurely with the `cancel_game` endpoint, though keep in mind this will negatively affect a user's performance. If you want to see the history of moves made and the responses given, call the `get_game_history` method.
 
 ##Files Included:
  - api.py: Contains endpoints and game playing logic.
@@ -43,7 +52,7 @@ Many different Hangman games can be played by many different Users at any given 
     - Method: POST
     - Parameters: user_name
     - Returns: GameForm with initial game state.
-    - Description: Creates a new Game. user_name provided must correspond to an
+    - Description: Creates a new Game, and gives you a urlsafe game key to use when making guesses in the game. user_name provided must correspond to an
     existing user - will raise a NotFoundException if not. Also adds a task to a 
 	task queue to update the average moves remaining for active games.
      

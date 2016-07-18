@@ -9,47 +9,47 @@ from protorpc import messages
 from google.appengine.ext import ndb
 
 with open("wordlist.txt") as f:
-	wordList = f.read().splitlines()
+    wordList = f.read().splitlines()
+
 
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
     email = ndb.StringProperty()
-    games_played = ndb.IntegerProperty(required=True)
-    career_points = ndb.IntegerProperty(required=True)
-    performance = ndb.FloatProperty(required=True)
+    games_played = ndb.IntegerProperty(required=True, default=0)
+    career_points = ndb.IntegerProperty(required=True, default=0)
+    performance = ndb.ComputedProperty(lambda self: self.career_points /
+                                       self.games_played if self.games_played >
+                                       0 else 0)
 
     def to_form(self):
         """Returns a UserForm representation of the User"""
-        return UserForm(name=self.name, 
+        return UserForm(name=self.name,
                         games_played=self.games_played,
                         career_points=self.career_points,
-                        performance=self.performance)
+                        performance=float(self.performance))
+
 
 class Game(ndb.Model):
     """Game object"""
     target_string = ndb.StringProperty(required=True)
     shown_string = ndb.StringProperty(required=True)
-    guessed_letters = ndb.StringProperty(required=True)
-    correct_letters = ndb.StringProperty(required=True)
-    strikes_remaining = ndb.IntegerProperty(required=True)
+    guessed_letters = ndb.StringProperty(required=True, default="")
+    correct_letters = ndb.StringProperty(required=True, default="")
+    strikes_remaining = ndb.IntegerProperty(required=True, default=6)
     game_over = ndb.BooleanProperty(required=True, default=False)
     user = ndb.KeyProperty(required=True, kind='User')
-    history = ndb.JsonProperty(required=True)
+    history = ndb.JsonProperty(required=True, default=[])
 
     @classmethod
     def new_game(cls, user):
-        """Creates and returns a new game - strikes always 6: 1 head, 1 body, 2 legs, 2 arms"""
-        targString = wordList[random.randint(0,len(wordList)-1)]
+        """Creates and returns a new game - strikes always 6:
+        1 head, 1 body, 2 legs, 2 arms"""
+        targString = wordList[random.randint(0, len(wordList) - 1)]
         blankString = '_' * len(targString)
         game = Game(user=user,
                     target_string=targString,
-                    shown_string=blankString,
-                    guessed_letters="",
-                    correct_letters="",
-                    strikes_remaining=6,
-                    history = [],
-                    game_over=False)
+                    shown_string=blankString)
         game.put()
         return game
 
@@ -67,11 +67,12 @@ class Game(ndb.Model):
 
     def history_to_form(self):
         """Returns a GameHistoryForm representation of the Game"""
-        return GameHistoryForm(urlsafe_key = self.key.urlsafe(),
-                               game_over = self.game_over,
-                               user_name = self.user.get().name,
-                               history = json.dumps(self.history, sort_keys=True,
-                                                    indent=2, separators=(',', ': '))
+        return GameHistoryForm(urlsafe_key=self.key.urlsafe(),
+                               game_over=self.game_over,
+                               user_name=self.user.get().name,
+                               history=json.dumps(self.history, sort_keys=True,
+                                                  indent=2,
+                                                  separators=(',', ': '))
                                )
 
     def end_game(self, won=False):
@@ -80,7 +81,7 @@ class Game(ndb.Model):
         self.game_over = True
         self.put()
         # Add the game to the score 'board'
-        score = Score(user=self.user, date=date.today(), 
+        score = Score(user=self.user, date=date.today(),
                       won=won,
                       points=self.strikes_remaining)
         score.put()
@@ -108,9 +109,11 @@ class GameForm(messages.Message):
     message = messages.StringField(6, required=True)
     user_name = messages.StringField(7, required=True)
 
+
 class GameForms(messages.Message):
     """Return multiple GameForms"""
     items = messages.MessageField(GameForm, 1, repeated=True)
+
 
 class NewGameForm(messages.Message):
     """Used to create a new game"""
@@ -139,6 +142,7 @@ class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1, required=True)
 
+
 class UserForm(messages.Message):
     """UserForm for outbound User information"""
     name = messages.StringField(1, required=True)
@@ -146,9 +150,11 @@ class UserForm(messages.Message):
     career_points = messages.IntegerField(3, required=True)
     performance = messages.FloatField(4, required=True)
 
+
 class UserForms(messages.Message):
     """Return multiple UserForms"""
     items = messages.MessageField(UserForm, 1, repeated=True)
+
 
 class GameHistoryForm(messages.Message):
     """GameHistoryForm for outound Game History information"""
