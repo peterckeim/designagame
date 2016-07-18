@@ -1,6 +1,15 @@
 Design Reflections--
 
-I really really really want to be done with this.
+Hangman was the easiest game I could think of to spin off the original guessing game. The trick was thinking how to show the blank spaces
+which the user would guess, and how it would be slowly revealed. It was not until I had 'guessed_letters' and 'correct_letters' that
+things began to fall into place. I was originally going to have a 'missed_letters' and 'correct_letters', but I needed a combined
+list to use in revealing the blank spaces, as well as to show the player everything they guessed, not just the missed letters.
+
+For scorekeeping and performance, there are still other ways I could improve, but for the sake of clarity, and for the sake of players
+also being able to understand why they received the score they did, I left it with the traditional 6 strikes. 
+
+History was a bit of a challenge, because I wasn't sure how on earth to store and retrieve a list of dictionaries from appengine,
+and I ended up using JSON. It looks ugly when retrieved, but it works. I wish I knew how to make it prettier.
 
 regarding canceling games:
 it's my belief that if you need to cancel your game, you need
@@ -12,4 +21,3 @@ to win.
 General thoughts:
 -It was hard to debug sometimes because printing to the appengine log is a little more than just 'print'
 -Sublime 3 is pretty amazing.
--PEP 8 sometimes doesn't work, and I don't agree with the standard being indentation by space instead of tab.
