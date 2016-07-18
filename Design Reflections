@@ -1,0 +1,15 @@
+Design Reflections--
+
+I really really really want to be done with this.
+
+regarding canceling games:
+it's my belief that if you need to cancel your game, you need
+to take a loss, otherwise players will simply delete / cancel
+games when performing poorly, so it does not affect their ranking.
+That's letting the ragequitters win, and ragequitters never deserve
+to win.
+
+General thoughts:
+-It was hard to debug sometimes because printing to the appengine log is a little more than just 'print'
+-Sublime 3 is pretty amazing.
+-PEP 8 sometimes doesn't work, and I don't agree with the standard being indentation by space instead of tab.

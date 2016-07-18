@@ -179,7 +179,9 @@ class HangmanApi(remote.Service):
         """Populates memcache with the average moves remaining of Games"""
         logging.info('Going to cache the average strikes')
         games = Game.query(Game.game_over == False).fetch()
-        # this isn't working if I do (not Game.game_over) it is frustrating.
+        # this isn't working if I do (not Game.game_over)
+        # or (Game.game_over is False) it is frustrating.
+        # anaconda plugin keeps yelling at me that this is against PEP 8
         logging.info('I made it this far')
         if games:
             logging.info('This is the len of games: ' + str(len(games)))
